@@ -1,45 +1,35 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix for default marker icons in Next.js
-const DefaultIcon = L.icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
+// Custom Vehicle Icon (Ambulance/Drone)
+const vehicleIcon = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Location pin or ambulance icon
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
-export default function MapView({ weatherData, trafficData }: any) {
+export default function MapView({ trafficData }: any) {
   const [mounted, setMounted] = useState(false);
+  const [vehiclePos, setVehiclePos] = useState<[number, number]>([47.6062, -122.3321]);
 
-  // Seattle-Specific Medical Missions
-  const cargoLocations = [
-    { 
-      position: [47.6044, -122.3241] as [number, number], 
-      name: 'Mission #702: Heart Transplant', 
-      location: 'Harborview Medical Center',
-      priority: 'CRITICAL' 
-    },
-    { 
-      position: [47.6501, -122.3066] as [number, number], 
-      name: 'Mission #401: Type O- Blood', 
-      location: 'UW Medical Center',
-      priority: 'HIGH' 
-    },
-    { 
-      position: [47.6622, -122.2825] as [number, number], 
-      name: 'Mission #109: Pediatric ECMO', 
-      location: 'Seattle Children’s',
-      priority: 'CRITICAL' 
-    }
+  // 1. Mission Data (The "Cargo")
+  const missions = [
+    { id: '702', pos: [47.6044, -122.3241], name: 'Heart Transplant', hub: 'Harborview' },
+    { id: '401', pos: [47.6501, -122.3066], name: 'Type O- Blood', hub: 'UW Medicine' },
   ];
 
-  // Automated Day/Night Logic
+  // 2. Simulate Vehicle Movement (The "Live" part)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVehiclePos(prev => [prev[0] + 0.0001, prev[1] + 0.0001]); // Slow movement NE
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const mapTileUrl = useMemo(() => {
     const hour = new Date().getHours();
     return (hour >= 6 && hour < 18) 
@@ -51,32 +41,35 @@ export default function MapView({ weatherData, trafficData }: any) {
   if (!mounted) return null;
 
   return (
-    <div className="w-full h-full">
-      <MapContainer 
-        center={[47.6062, -122.3321]} 
-        zoom={12} 
-        style={{ height: '100%', width: '100%' }}
-      >
+    <div className="w-full h-full relative">
+      <MapContainer center={[47.6062, -122.3321]} zoom={13} style={{ height: '100%', width: '100%' }}>
         <TileLayer attribution='&copy; CARTO' url={mapTileUrl} />
         
-        {cargoLocations.map((cargo, i) => (
-          <Marker key={i} position={cargo.position}>
+        {/* LIVE VEHICLE MARKER */}
+        <Marker position={vehiclePos} icon={vehicleIcon}>
+          <Popup>
+            <div className="font-bold text-blue-600">MED-V1 (In Transit)</div>
+            <div className="text-[10px]">Speed: 24mph | Alt: 120ft</div>
+          </Popup>
+        </Marker>
+
+        {/* CARGO DESTINATIONS */}
+        {missions.map((m) => (
+          <Marker key={m.id} position={m.pos as [number, number]}>
             <Popup>
-              <div className="text-black p-1 min-w-[150px]">
-                <div className="font-bold border-b pb-1 mb-1">{cargo.name}</div>
-                <div className="text-xs text-gray-600">{cargo.location}</div>
-                <div className={`text-xs font-bold mt-2 ${cargo.priority === 'CRITICAL' ? 'text-red-600' : 'text-blue-600'}`}>
-                  PRIORITY: {cargo.priority}
+              <div className="text-black">
+                <div className="font-bold">Mission #{m.id}</div>
+                <div className="text-xs">{m.name}</div>
+                <div className="text-[10px] text-red-500 font-bold mt-1">
+                   Delay: +{trafficData?.delay || 0} min
                 </div>
-                {trafficData?.delay > 0 && (
-                  <div className="text-[10px] text-red-500 mt-1 animate-pulse">
-                    ⚠️ SEATTLE TRAFFIC DELAY: +{trafficData.delay} min
-                  </div>
-                )}
               </div>
             </Popup>
           </Marker>
         ))}
+
+        {/* PROPOSED ROUTE LINE */}
+        <Polyline positions={[vehiclePos, [47.6044, -122.3241]]} color="#00f5ff" weight={3} dashArray="5, 10" />
       </MapContainer>
     </div>
   );

@@ -67,17 +67,18 @@ export default function DispatchPage() {
         );
         const data = await response.json();
         
-        const current = data.flowSegmentData.currentSpeed;
-        const freeFlow = data.flowSegmentData.freeFlowSpeed;
-        const congestionFactor = Math.round(((freeFlow - current) / freeFlow) * 100);
+        const current = data.flowSegmentData.currentTravelTime;
+        const freeFlow = data.flowSegmentData.freeFlowTravelTime;
         
+        // Convert to minutes with one decimal place for precision (e.g., +1.5 min)
+        const delayMinutes = Math.max(0, (current - freeFlow) / 60);
+    
         setTrafficData({
-          congestion: Math.max(0, congestionFactor),
-          delay: Math.round(data.flowSegmentData.currentTravelTime / 60) - Math.round(data.flowSegmentData.freeFlowTravelTime / 60),
+          congestion: Math.round(((freeFlow - current) / freeFlow) * -100),
+          delay: parseFloat(delayMinutes.toFixed(1)), // Now shows 1.2 or 0.5 instead of just 0
         });
       } catch (err) {
-        console.error('Traffic error:', err);
-        setTrafficData({ congestion: 35, delay: 12 });
+        setTrafficData({ congestion: 35, delay: 10.5 });
       }
     };
 
