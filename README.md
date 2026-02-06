@@ -104,7 +104,7 @@ medical-logistics-router/
 │       ├── ShapPlot.tsx    # SHAP Waterfall visualization
 │       └── DecisionTree.tsx # Decision tree visualization
 ├── .env.local.example      # Environment variables template
-├── next.config.ts         # Next.js configuration
+├── next.config.ts          # Next.js configuration
 └── README.md               # This file
 ```
 
@@ -116,6 +116,10 @@ medical-logistics-router/
 - **Emergency Red**: `#ff3131` (Critical alerts, delays)
 - **Card Background**: `#1a1a1a`
 - **Border**: `#2a2a2a`
+
+### Typography
+- **Font Family**: Geist Sans (via Next.js)
+- **Monospace**: Geist Mono (for code/formulas)
 
 ## Deployment to Vercel
 
@@ -139,12 +143,61 @@ git push origin main
 
 ### Environment Variables in Vercel
 
+In your Vercel project settings, add the following environment variable:
+
 | Variable Name | Value | Description |
 |--------------|-------|-------------|
 | `NEXT_PUBLIC_TOMTOM_KEY` | Your TomTom API key | Required for traffic routing features |
 
 **Note**: The `NEXT_PUBLIC_` prefix is required for client-side access in Next.js.
 
+### Post-Deployment
+
+After deployment, your dashboard will be available at:
+- Production: `https://your-project.vercel.app`
+- Preview: `https://your-project-git-branch.vercel.app`
+
+## API Integration Notes
+
+### Open-Meteo API
+- **No API key required** (public API)
+- Endpoint: `https://api.open-meteo.com/v1/forecast`
+- Used for: Real-time weather data in Seattle
+
+### TomTom Routing API
+- **API key required** (get from [TomTom Developer Portal](https://developer.tomtom.com/))
+- Used for: Traffic congestion and routing calculations
+- Rate limits: Varies by plan (free tier available)
+
+## Responsive Design
+
+The dashboard is fully responsive and optimized for:
+- Desktop (1920px+)
+- Laptop (1024px - 1919px)
+- Tablet (768px - 1023px)
+- Mobile (320px - 767px)
+
+## Troubleshooting
+
+### Map not loading
+- Ensure Leaflet CSS is imported (already in `globals.css`)
+- Check browser console for errors
+- Verify dynamic import is working (MapView uses `dynamic` from Next.js)
+
+### API errors
+- Verify `.env.local` file exists and contains `NEXT_PUBLIC_TOMTOM_KEY`
+- Check API key validity in TomTom Developer Portal
+- Ensure network requests aren't blocked by CORS
+
+### Build errors
+- Run `npm install` to ensure all dependencies are installed
+- Clear `.next` folder: `rm -rf .next`
+- Rebuild: `npm run build`
+
 ## License
 
 This project is private and proprietary.
+
+## Support
+
+For issues or questions, please contact the development team.
