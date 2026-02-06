@@ -5,42 +5,67 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// 1. STABLE ICON LOGIC (CSS Based - won't break)
-const hospitalIcon = L.divIcon({
-  className: 'custom-icon',
-  html: `<div style="background-color: #ff3131; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
-  iconSize: [12, 12],
-});
-
-const vehicleIcon = L.divIcon({
-  className: 'vehicle-icon',
-  html: `<div style="background-color: #00f5ff; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #00f5ff;"></div>`,
+/**
+ * FIXED ICON LOGIC
+ * We use DivIcons (HTML/CSS) instead of images to prevent 
+ * the "broken icon" issue common in Next.js/Leaflet builds.
+ */
+const hospitalIcon = typeof window !== 'undefined' ? L.divIcon({
+  className: 'custom-hospital-icon',
+  html: `<div style="background-color: #ff3131; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(255,49,49,0.6);"></div>`,
   iconSize: [14, 14],
-});
+  iconAnchor: [7, 7],
+}) : null;
 
-export default function MapView({ trafficData, searchQuery }: any) {
+const vehicleIcon = typeof window !== 'undefined' ? L.divIcon({
+  className: 'custom-vehicle-icon',
+  html: `<div style="background-color: #00f5ff; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 12px #00f5ff; animation: pulse 2s infinite;"></div>
+         <style>
+           @keyframes pulse {
+             0% { transform: scale(1); opacity: 1; }
+             50% { transform: scale(1.2); opacity: 0.7; }
+             100% { transform: scale(1); opacity: 1; }
+           }
+         </style>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+}) : null;
+
+interface MapViewProps {
+  trafficData?: { delay: number; congestion: number };
+  searchQuery?: string;
+}
+
+export default function MapView({ trafficData, searchQuery = '' }: MapViewProps) {
   const [mounted, setMounted] = useState(false);
   const [vehiclePos, setVehiclePos] = useState<[number, number]>([47.6000, -122.3300]);
 
-  const missions = [
-    { id: '702', pos: [47.6044, -122.3241], name: 'Heart Transplant', hub: 'Harborview' },
-    { id: '401', pos: [47.6501, -122.3066], name: 'Type O- Blood', hub: 'UW Medicine' },
-  ];
+  // Seattle Medical Hubs
+  const missions = useMemo(() => [
+    { id: '702', pos: [47.6044, -122.3241] as [number, number], name: 'Heart Transplant', hub: 'Harborview' },
+    { id: '401', pos: [47.6501, -122.3066] as [number, number], name: 'Type O- Blood', hub: 'UW Medicine' },
+    { id: '109', pos: [47.6622, -122.2825] as [number, number], name: 'Pediatric ECMO', hub: "Seattle Children's" },
+  ], []);
 
-  // Filter missions based on the search bar input
-  const filteredMissions = missions.filter(m => 
-    m.name.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
-    m.hub.toLowerCase().includes(searchQuery?.toLowerCase() || '')
-  );
+  // Filter logic for Search Bar
+  const filteredMissions = useMemo(() => {
+    return missions.filter(m => 
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.hub.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, missions]);
 
+  // Simulate slow vehicle movement for Demo
   useEffect(() => {
     const interval = setInterval(() => {
-      setVehiclePos(prev => [prev[0] + 0.00005, prev[1] + 0.00005]);
-    }, 2000);
+      setVehiclePos(prev => [prev[0] + 0.00004, prev[1] + 0.00004]);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
+  // Day/Night Theme Logic
   const mapTileUrl = useMemo(() => {
+    if (typeof window === 'undefined') return "";
     const hour = new Date().getHours();
     return (hour >= 6 && hour < 18) 
       ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -48,32 +73,42 @@ export default function MapView({ trafficData, searchQuery }: any) {
   }, []);
 
   useEffect(() => { setMounted(true); }, []);
-  if (!mounted) return null;
+  if (!mounted || !hospitalIcon || !vehicleIcon) return null;
 
   return (
     <div className="w-full h-full relative">
-      <MapContainer center={[47.6100, -122.3300]} zoom={13} style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={[47.6150, -122.3300]} zoom={12.5} style={{ height: '100%', width: '100%' }}>
         <TileLayer attribution='&copy; CARTO' url={mapTileUrl} />
         
-        {/* LIVE VEHICLE */}
+        {/* LIVE VEHICLE MARKER */}
         <Marker position={vehiclePos} icon={vehicleIcon}>
-          <Popup>MED-V1: Active Route</Popup>
+          <Popup><strong>MED-V1</strong><br/>Status: Active Dispatch</Popup>
         </Marker>
 
-        {/* SEARCH-FILTERED MISSIONS */}
+        {/* MISSION DESTINATIONS */}
         {filteredMissions.map((m) => (
-          <Marker key={m.id} position={m.pos as [number, number]} icon={hospitalIcon}>
+          <Marker key={m.id} position={m.pos} icon={hospitalIcon}>
             <Popup>
-              <div className="text-black font-sans">
-                <strong>{m.name}</strong><br/>
-                <span className="text-xs">{m.hub}</span>
+              <div className="text-black leading-tight">
+                <div className="font-bold">{m.name}</div>
+                <div className="text-xs text-gray-600">{m.hub}</div>
+                <div className="text-[10px] text-red-500 font-bold mt-1">
+                  Delay Impact: +{trafficData?.delay || 0}m
+                </div>
               </div>
             </Popup>
           </Marker>
         ))}
 
+        {/* Dynamic Route Line to nearest mission */}
         {filteredMissions.length > 0 && (
-          <Polyline positions={[vehiclePos, filteredMissions[0].pos as [number, number]]} color="#00f5ff" weight={2} dashArray="5, 10" opacity={0.6} />
+          <Polyline 
+            positions={[vehiclePos, filteredMissions[0].pos]} 
+            color="#00f5ff" 
+            weight={2} 
+            dashArray="8, 12" 
+            opacity={0.5} 
+          />
         )}
       </MapContainer>
     </div>

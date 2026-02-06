@@ -56,7 +56,8 @@ export default function SettingsPage() {
                     setTomtomKey(e.target.value);
                     setSaved(false);
                     setError(null);
-                  }}
+                  }
+                  onChange={(e) => setSearchQuery(e.target.value)}}
                   placeholder="Enter your TomTom API key"
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00f5ff] focus:ring-1 focus:ring-[#00f5ff] transition-colors"
                 />
