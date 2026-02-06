@@ -5,11 +5,6 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-/**
- * FIXED ICON LOGIC
- * We use DivIcons (HTML/CSS) instead of images to prevent 
- * the "broken icon" issue common in Next.js/Leaflet builds.
- */
 const hospitalIcon = typeof window !== 'undefined' ? L.divIcon({
   className: 'custom-hospital-icon',
   html: `<div style="background-color: #ff3131; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(255,49,49,0.6);"></div>`,
@@ -31,23 +26,16 @@ const vehicleIcon = typeof window !== 'undefined' ? L.divIcon({
   iconAnchor: [8, 8],
 }) : null;
 
-interface MapViewProps {
-  trafficData?: { delay: number; congestion: number };
-  searchQuery?: string;
-}
-
-export default function MapView({ trafficData, searchQuery = '' }: MapViewProps) {
+export default function MapView({ trafficData, searchQuery = '' }: any) {
   const [mounted, setMounted] = useState(false);
   const [vehiclePos, setVehiclePos] = useState<[number, number]>([47.6000, -122.3300]);
 
-  // Seattle Medical Hubs
   const missions = useMemo(() => [
     { id: '702', pos: [47.6044, -122.3241] as [number, number], name: 'Heart Transplant', hub: 'Harborview' },
     { id: '401', pos: [47.6501, -122.3066] as [number, number], name: 'Type O- Blood', hub: 'UW Medicine' },
     { id: '109', pos: [47.6622, -122.2825] as [number, number], name: 'Pediatric ECMO', hub: "Seattle Children's" },
   ], []);
 
-  // Filter logic for Search Bar
   const filteredMissions = useMemo(() => {
     return missions.filter(m => 
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,7 +43,6 @@ export default function MapView({ trafficData, searchQuery = '' }: MapViewProps)
     );
   }, [searchQuery, missions]);
 
-  // Simulate slow vehicle movement for Demo
   useEffect(() => {
     const interval = setInterval(() => {
       setVehiclePos(prev => [prev[0] + 0.00004, prev[1] + 0.00004]);
@@ -63,7 +50,6 @@ export default function MapView({ trafficData, searchQuery = '' }: MapViewProps)
     return () => clearInterval(interval);
   }, []);
 
-  // Day/Night Theme Logic
   const mapTileUrl = useMemo(() => {
     if (typeof window === 'undefined') return "";
     const hour = new Date().getHours();
@@ -77,15 +63,22 @@ export default function MapView({ trafficData, searchQuery = '' }: MapViewProps)
 
   return (
     <div className="w-full h-full relative">
-      <MapContainer center={[47.6150, -122.3300]} zoom={12.5} style={{ height: '100%', width: '100%' }}>
+      <MapContainer 
+        center={[47.6150, -122.3300]} 
+        zoom={12.5} 
+        style={{ height: '100%', width: '100%' }}
+        // SMOOTH SCROLLING SETTINGS
+        scrollWheelZoom={true}
+        zoomSnap={0.5}
+        zoomDelta={0.5}
+        wheelPxPerZoomLevel={120}
+      >
         <TileLayer attribution='&copy; CARTO' url={mapTileUrl} />
         
-        {/* LIVE VEHICLE MARKER */}
         <Marker position={vehiclePos} icon={vehicleIcon}>
           <Popup><strong>MED-V1</strong><br/>Status: Active Dispatch</Popup>
         </Marker>
 
-        {/* MISSION DESTINATIONS */}
         {filteredMissions.map((m) => (
           <Marker key={m.id} position={m.pos} icon={hospitalIcon}>
             <Popup>
@@ -100,7 +93,6 @@ export default function MapView({ trafficData, searchQuery = '' }: MapViewProps)
           </Marker>
         ))}
 
-        {/* Dynamic Route Line to nearest mission */}
         {filteredMissions.length > 0 && (
           <Polyline 
             positions={[vehiclePos, filteredMissions[0].pos]} 
