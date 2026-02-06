@@ -1,6 +1,7 @@
 'use client';
 
 import { GitBranch, CheckCircle, XCircle } from 'lucide-react';
+import React from 'react';
 
 interface TreeNode {
   id: string;
@@ -15,7 +16,7 @@ interface DecisionTreeProps {
 }
 
 export default function DecisionTree({ tree }: DecisionTreeProps) {
-  const renderNode = (node: TreeNode, depth: number = 0): JSX.Element => {
+  const renderNode = (node: TreeNode, depth: number = 0): React.ReactElement => {
     const indent = depth * 40;
     const isPositive = node.value >= 0;
 
