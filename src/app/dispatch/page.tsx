@@ -14,7 +14,7 @@ export default function DispatchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vehicles, setVehicles] = useState<any[]>([]);
 
-  const hospitals = [
+  const hospitals = useMemo(() => [
     { id: 'H1', hub: 'Harborview', pos: [47.6044, -122.3241], cargo: 'Heart' },
     { id: 'H2', hub: 'UW Medicine', pos: [47.6501, -122.3066], cargo: 'Blood' },
     { id: 'H3', hub: 'Children’s', pos: [47.6622, -122.2825], cargo: 'ECMO' },
@@ -25,7 +25,7 @@ export default function DispatchPage() {
     { id: 'H8', hub: 'Providence', pos: [47.9912, -122.2034], cargo: 'Antivenom' },
     { id: 'H9', hub: 'MultiCare', pos: [47.3073, -122.2285], cargo: 'Dialysis' },
     { id: 'H10', hub: 'Sacred Heart', pos: [47.6483, -117.4128], cargo: 'Insulin' },
-  ];
+  ], []);
 
   useEffect(() => {
     const initialVehicles = Array.from({ length: 10 }).map((_, i) => ({
@@ -35,22 +35,12 @@ export default function DispatchPage() {
       speed: Math.floor(Math.random() * 20) + 35
     }));
     setVehicles(initialVehicles);
-
-    const timer = setInterval(() => {
-      setVehicles(prev => prev.map(v => ({
-        ...v,
-        pos: [v.pos[0] + (Math.random() - 0.5) * 0.001, v.pos[1] + (Math.random() - 0.5) * 0.001] as [number, number],
-        speed: Math.floor(Math.random() * 10) + 30
-      })));
-    }, 4000);
-    return () => clearInterval(timer);
   }, []);
 
   const filtered = hospitals.filter(h => h.hub.toLowerCase().includes(searchQuery.toLowerCase()) || h.cargo.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="max-w-[1600px] mx-auto p-6 space-y-6 pt-24">
-      {/* THE ONLY SEARCH BAR */}
       <div className="relative w-full max-w-2xl mx-auto">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
         <input 
@@ -61,12 +51,10 @@ export default function DispatchPage() {
         />
       </div>
 
-      {/* FIXED TELEMETRY MAP (400px) */}
       <section className="h-[400px] w-full rounded-3xl overflow-hidden border border-[#1a1a1a]">
         <Map missions={filtered} vehicles={vehicles} />
       </section>
 
-      {/* DATA DASHBOARD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20">
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map(m => (
@@ -78,16 +66,13 @@ export default function DispatchPage() {
                   <div className="text-[10px] text-gray-500 uppercase font-mono">{m.hub} Hub</div>
                 </div>
               </div>
-              <div className="text-[10px] font-mono text-green-500 bg-green-500/10 px-2 py-0.5 rounded">ACTIVE</div>
             </div>
           ))}
         </div>
         <div className="space-y-4">
           <LifeCostCard time={32} weather={0.4} severity={8.5} />
           <div className="bg-[#111] border border-[#1a1a1a] p-5 rounded-xl">
-             <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-4 flex items-center gap-2">
-               <Activity className="w-4 h-4 text-[#00f5ff]" /> Fleet Telemetry
-             </h3>
+             <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-4 flex items-center gap-2"><Activity className="w-4 h-4 text-[#00f5ff]" /> Fleet Status</h3>
              {vehicles.slice(0, 5).map(v => (
                <div key={v.id} className="flex justify-between text-xs py-2 border-b border-[#1a1a1a] last:border-0 font-mono">
                  <span className="text-gray-400 flex items-center gap-2"><Truck className="w-3 h-3" /> {v.callsign}</span>
